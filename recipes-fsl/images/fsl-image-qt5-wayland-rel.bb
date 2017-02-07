@@ -26,6 +26,7 @@ CORE_IMAGE_EXTRA_INSTALL += " \
     packagegroup-fsl-gstreamer1.0 \
     packagegroup-fsl-gstreamer1.0-full \
     weston-init \
+    weston-calibrate \
 "
 
 QT5_IMAGE_INSTALL = ""
