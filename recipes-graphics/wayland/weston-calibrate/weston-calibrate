@@ -42,11 +42,9 @@ case "$1" in
         # Reload and re-run udev rules and restart weston
         udevadm control --reload
         udevadm trigger
-        killproc weston
         sleep 1
 
-        weston-start -- $OPTARGS
-
+        /etc/init.d/weston restart
   ;;
 
   *)
