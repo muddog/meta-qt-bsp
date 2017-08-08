@@ -1,0 +1,71 @@
+From 36849a469cb680e6ed34c48afd19a0a602713fb6 Mon Sep 17 00:00:00 2001
+From: Xinyu Chen <xinyu.chen@nxp.com>
+Date: Mon, 20 Feb 2017 11:13:09 +0800
+Subject: [PATCH] Add the imxvideoconvert_pxp support for CSC process in the
+ camerabin2. Due to the pixel format of BGRx/BGRA is not working well under
+ the QPaint, we have to add a capsfilter to force the format to be RGB16.
+
+Signed-off-by: Xinyu Chen <xinyu.chen@nxp.com>
+---
+ gst/camerabin2/gstviewfinderbin.c | 27 +++++++++++++++++++++------
+ 1 file changed, 21 insertions(+), 6 deletions(-)
+
+diff --git a/gst/camerabin2/gstviewfinderbin.c b/gst/camerabin2/gstviewfinderbin.c
+index 3ae6c31..70cb525 100644
+--- a/gst/camerabin2/gstviewfinderbin.c
++++ b/gst/camerabin2/gstviewfinderbin.c
+@@ -199,22 +199,37 @@ gst_viewfinder_bin_create_elements (GstViewfinderBin * vfbin)
+     gst_ghost_pad_set_target (GST_GHOST_PAD (vfbin->ghostpad), NULL);
+ 
+     /* add the elements, user wants them */
+-    csp = gst_element_factory_make ("videoconvert", "vfbin-csp");
++    csp = gst_element_factory_make ("imxvideoconvert_pxp", "vfbin-csp");
+     if (!csp) {
+-      missing_element_name = "videoconvert";
++      missing_element_name = "imxvideoconvert_pxp";
+       goto missing_element;
+     }
+     gst_bin_add (GST_BIN_CAST (vfbin), csp);
+ 
+-    videoscale = gst_element_factory_make ("videoscale", "vfbin->videoscale");
++    videoscale = gst_element_factory_make ("videoscale", "vfbin-videoscale");
+     if (!videoscale) {
+       missing_element_name = "videoscale";
+       goto missing_element;
+     }
+     gst_bin_add (GST_BIN_CAST (vfbin), videoscale);
+ 
+-    gst_element_link_pads_full (csp, "src", videoscale, "sink",
+-        GST_PAD_LINK_CHECK_NOTHING);
++    /* insert the capsfilter "caps=video/x-raw,format=RGB16" to
++     * make sure we have RGB565 format which both pxp and QPaint can support well
++     */
++    GstElement *pxp_outfilter = gst_element_factory_make ("capsfilter", "vfbin-caps");
++    gst_bin_add (GST_BIN_CAST (vfbin), pxp_outfilter);
++    GstCaps *caps = gst_caps_new_simple ("video/x-raw",
++                                         "format", G_TYPE_STRING, "RGB16",
++                                         NULL);
++    g_object_set (G_OBJECT (pxp_outfilter), "caps", caps, NULL);
++    gst_caps_unref (caps);
++
++    gst_element_link_pads_full (csp, "src", pxp_outfilter, "sink",
++          GST_PAD_LINK_CHECK_CAPS);
++    gst_element_link_pads_full (pxp_outfilter, "src", videoscale, "sink",
++          GST_PAD_LINK_CHECK_CAPS);
++    //gst_element_link_pads_full (csp, "src", videoscale, "sink",
++        //GST_PAD_LINK_CHECK_NOTHING);
+ 
+     vfbin->elements_created = TRUE;
+     GST_DEBUG_OBJECT (vfbin, "Elements succesfully created and linked");
+@@ -228,7 +243,7 @@ gst_viewfinder_bin_create_elements (GstViewfinderBin * vfbin)
+     gboolean unref = FALSE;
+     if (!videoscale) {
+       videoscale = gst_bin_get_by_name (GST_BIN_CAST (vfbin),
+-          "vfbin-videscale");
++          "vfbin-videoscale");
+       unref = TRUE;
+     }
+ 
+-- 
+2.9.3
+

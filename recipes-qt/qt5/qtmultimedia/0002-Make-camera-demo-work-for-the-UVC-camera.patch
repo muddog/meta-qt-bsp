@@ -1,0 +1,32 @@
+From d5c5b3869d5fa6bf7585076a9262fd1914df228c Mon Sep 17 00:00:00 2001
+From: Xinyu Chen <xinyu.chen@nxp.com>
+Date: Mon, 20 Feb 2017 11:04:29 +0800
+Subject: [PATCH 2/2] Make camera demo work for the UVC camera
+
+Signed-off-by: Xinyu Chen <xinyu.chen@nxp.com>
+---
+ examples/multimediawidgets/camera/camera.cpp | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/examples/multimediawidgets/camera/camera.cpp b/examples/multimediawidgets/camera/camera.cpp
+index 2a1af87..b7ef36b 100644
+--- a/examples/multimediawidgets/camera/camera.cpp
++++ b/examples/multimediawidgets/camera/camera.cpp
+@@ -117,7 +117,14 @@ void Camera::setCamera(const QCameraInfo &cameraInfo)
+ 
+     connect(ui->exposureCompensation, SIGNAL(valueChanged(int)), SLOT(setExposureCompensation(int)));
+ 
++    QCameraViewfinderSettings viewfinderSettings;
++
++    viewfinderSettings.setResolution(320, 240);
++    viewfinderSettings.setMinimumFrameRate(20.0);
++    viewfinderSettings.setMaximumFrameRate(30.0);
++    viewfinderSettings.setPixelFormat(QVideoFrame::Format_YUYV);
+     camera->setViewfinder(ui->viewfinder);
++    camera->setViewfinderSettings(viewfinderSettings);
+ 
+     updateCameraState(camera->state());
+     updateLockStatus(camera->lockStatus(), QCamera::UserRequest);
+-- 
+2.9.3
+
